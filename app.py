@@ -34,7 +34,7 @@ st.set_page_config(
     page_title="OIL Safety | Easy Hazard Reporting",
     page_icon="🛡️",
     layout="wide",
-    initial_sidebar_state="collapsed"
+    initial_sidebar_state="expanded"
 )
 
 # Apply simple, attractive, friendly CSS
@@ -49,6 +49,8 @@ if 'admin_authenticated' not in st.session_state:
     st.session_state.admin_authenticated = False
 if 'last_submitted_complaint' not in st.session_state:
     st.session_state.last_submitted_complaint = None
+if 'worker_hazard_text_area' not in st.session_state:
+    st.session_state.worker_hazard_text_area = ""
 
 # ==============================================================================
 # SIDEBAR: SIMPLE LANGUAGE & ROLE SELECTOR
@@ -124,18 +126,20 @@ classifier, tagger, extractor = load_models()
 # ==============================================================================
 role_tag_html = ""
 if st.session_state.user_role == 'admin' and st.session_state.admin_authenticated:
-    role_tag_html = '<span class="status-badge-orange">👑 Safety Officer Mode</span>'
+    role_tag_html = '<span class="status-badge-orange">👑 Safety Officer Command</span>'
 else:
-    role_tag_html = '<span class="status-badge-green">👷 Worker Mode (No Password Needed)</span>'
+    role_tag_html = '<span class="status-badge-green">👷 Field Operator Portal</span>'
 
 st.markdown(f"""
 <div class="app-header-card">
     <div>
-        <h1 class="app-title">🛡️ OIL Safety Friend</h1>
-        <div class="app-subtitle">Spot a hazard? Tell us in your voice or typing — We will fix it quickly!</div>
+        <div class="oil-brand-badge">⚡ OIL INDIA LIMITED • SAFETY INTELLIGENCE</div>
+        <h1 class="app-title">HSE Incident & Hazard Intelligence Portal</h1>
+        <div class="app-subtitle">Serious Injury & Fatality (SIF) Precursor Analytics • IOGP Life-Saving Rules Multi-Label Classifier</div>
     </div>
-    <div>
+    <div style="display:flex; flex-direction:column; align-items:flex-end; gap:8px;">
         {role_tag_html}
+        <span class="status-badge-blue">● OISD-GDN-169 & IOGP-10 Standard</span>
     </div>
 </div>
 """, unsafe_allow_html=True)
@@ -146,42 +150,41 @@ def render_visual_tracker(status_val: str):
     is_step2 = (status_val in [cs.STATUS_GONNA_BE_VISITED, cs.STATUS_SOLVED])
     is_step3 = (status_val == cs.STATUS_SOLVED)
 
-    c1_class = "tracker-circle-active-red" if status_val == cs.STATUS_UNCHECKED else ("tracker-circle-active-green" if is_step2 else "tracker-circle-active-red")
-    c2_class = "tracker-circle-active-orange" if status_val == cs.STATUS_GONNA_BE_VISITED else ("tracker-circle-active-green" if is_step3 else "tracker-circle-inactive")
-    c3_class = "tracker-circle-active-green" if is_step3 else "tracker-circle-inactive"
+    c1_class = "stepper-red" if status_val == cs.STATUS_UNCHECKED else ("stepper-green" if is_step2 else "stepper-red")
+    c2_class = "stepper-orange" if status_val == cs.STATUS_GONNA_BE_VISITED else ("stepper-green" if is_step3 else "stepper-inactive")
+    c3_class = "stepper-green" if is_step3 else "stepper-inactive"
 
-    line1_class = "tracker-line tracker-line-done" if is_step2 else "tracker-line"
-    line2_class = "tracker-line tracker-line-done" if is_step3 else "tracker-line"
+    b1_class = "stepper-bar stepper-bar-active" if is_step2 else "stepper-bar"
+    b2_class = "stepper-bar stepper-bar-active" if is_step3 else "stepper-bar"
 
     return f"""
-    <div class="tracker-container">
-        <div class="tracker-step">
-            <div class="tracker-circle {c1_class}">📝</div>
-            <div style="font-weight:700; font-size:0.85rem; color:#f8fafc;">1. Reported</div>
-            <div style="font-size:0.75rem; color:#94a3b8;">Pending Review</div>
+    <div class="stepper-container">
+        <div class="stepper-node">
+            <div class="stepper-icon-circle {c1_class}">📝</div>
+            <div style="font-weight:700; font-size:0.85rem; color:#f8fafc;">1. Incident Logged</div>
+            <div style="font-size:0.75rem; color:#94a3b8;">Pending HSE Review</div>
         </div>
-        <div class="{line1_class}"></div>
-        <div class="tracker-step">
-            <div class="tracker-circle {c2_class}">🏃</div>
-            <div style="font-weight:700; font-size:0.85rem; color:#f8fafc;">2. Team Visiting</div>
-            <div style="font-size:0.75rem; color:#94a3b8;">Inspection Scheduled</div>
+        <div class="{b1_class}"></div>
+        <div class="stepper-node">
+            <div class="stepper-icon-circle {c2_class}">🏃</div>
+            <div style="font-weight:700; font-size:0.85rem; color:#f8fafc;">2. Team Dispatched</div>
+            <div style="font-size:0.75rem; color:#94a3b8;">Site Audit In Progress</div>
         </div>
-        <div class="{line2_class}"></div>
-        <div class="tracker-step">
-            <div class="tracker-circle {c3_class}">✅</div>
-            <div style="font-weight:700; font-size:0.85rem; color:#f8fafc;">3. Solved & Safe</div>
-            <div style="font-size:0.75rem; color:#94a3b8;">Hazard Mitigated</div>
+        <div class="{b2_class}"></div>
+        <div class="stepper-node">
+            <div class="stepper-icon-circle {c3_class}">✅</div>
+            <div style="font-weight:700; font-size:0.85rem; color:#f8fafc;">3. Mitigated & Closed</div>
+            <div style="font-size:0.75rem; color:#94a3b8;">Hazard Rectified</div>
         </div>
     </div>
     """
 
 # ==============================================================================
-# WORKER VIEW (SUPER SIMPLE 3-STEP FLOW)
+# WORKER VIEW (CLEAN ENTERPRISE WORKFLOW)
 # ==============================================================================
 is_admin_active = (st.session_state.user_role == 'admin' and st.session_state.admin_authenticated)
 
 if not is_admin_active:
-    # 2 Big, obvious tabs for Workers
     tab_report, tab_track, tab_admin_login_box = st.tabs([
         "📢 Report a Safety Hazard",
         "🔍 Track My Report Status",
@@ -190,9 +193,9 @@ if not is_admin_active:
 
     with tab_report:
         st.markdown("""
-        <div style="text-align:center; margin-bottom:20px;">
-            <h2 style="font-weight:800; font-size:1.8rem; margin-bottom:6px;">Easy 3-Step Safety Report</h2>
-            <p style="color:#94a3b8; font-size:1.05rem;">Speak into your microphone or type. Anyone can do it in 30 seconds!</p>
+        <div style="margin-bottom:20px;">
+            <h2 style="font-weight:800; font-size:1.6rem; color:#f8fafc; margin-bottom:4px;">Field Incident & Hazard Observation Report</h2>
+            <p style="color:#94a3b8; font-size:0.95rem; margin:0;">Voice-enabled field reporting supporting Assamese, Hindi, Bengali, and English. Automatically standardized into HSE incident logs.</p>
         </div>
         """, unsafe_allow_html=True)
 
@@ -200,11 +203,11 @@ if not is_admin_active:
 
         with col_left:
             st.markdown("""
-            <div class="step-card">
-                <div class="step-badge">Step 1 of 3</div>
-                <h3 style="margin-top:0; font-size:1.3rem;">🎙️ Tell Us What Happened</h3>
-                <p style="color:#94a3b8; font-size:0.92rem;">Tap the button below and speak in your language, or type what you saw.</p>
-            </div>
+            <div class="pro-card">
+                <div class="pro-card-header">
+                    <div class="pro-card-title">🎙️ Incident Narrative & Spoken Audio</div>
+                    <span class="status-badge-blue">Section 1</span>
+                </div>
             """, unsafe_allow_html=True)
 
             speech_lang = st.selectbox(
@@ -216,15 +219,14 @@ if not is_admin_active:
             )
 
             # Quick Preset Buttons for easy testing
-            st.markdown("**Or click a quick test example:**")
+            st.caption("⚡ Or select a verified test scenario:")
             p1, p2, p3 = st.columns(3)
-            quick_text = ""
             if p1.button("🧗 Fall Danger"):
-                quick_text = "Worker on scaffolding without safety harness tied to lifeline."
+                st.session_state.worker_hazard_text_area = "Worker on scaffolding without safety harness tied to lifeline."
             if p2.button("🔥 Fire / Gas"):
-                quick_text = "Welding near gas tank without safety permit."
+                st.session_state.worker_hazard_text_area = "Welding near gas tank without safety permit."
             if p3.button("🏗️ Crane Lifting"):
-                quick_text = "Crane lifting heavy pipe with broken frayed rope."
+                st.session_state.worker_hazard_text_area = "Crane lifting heavy pipe with broken frayed rope."
 
             # HTML5 Speech Dictation
             speech_code_map = {
@@ -240,12 +242,12 @@ if not is_admin_active:
             active_speech_code = speech_code_map.get(speech_lang, "en-IN")
 
             speech_html = f"""
-            <div style="background:#0f172a; border:2px dashed #38bdf8; border-radius:16px; padding:16px; text-align:center; margin-bottom:14px;">
-                <button id="mic_btn" onclick="startMic()" style="background:#38bdf8; color:#0f172a; border:none; padding:12px 24px; border-radius:30px; font-weight:800; font-size:1.1rem; cursor:pointer;">
+            <div style="background:#111827; border:1px solid #334155; border-radius:14px; padding:16px; text-align:center; margin-bottom:14px;">
+                <button id="mic_btn" onclick="startMic()" style="background:linear-gradient(135deg, #0284c7 0%, #0369a1 100%); color:#ffffff; border:none; padding:10px 24px; border-radius:30px; font-weight:700; font-size:0.95rem; cursor:pointer; box-shadow:0 2px 10px rgba(2, 132, 199, 0.3);">
                     🎙️ Tap to Speak ({speech_lang})
                 </button>
-                <div id="mic_msg" style="color:#94a3b8; font-size:0.9rem; margin-top:8px;">Click microphone and talk clearly</div>
-                <div id="mic_result" style="color:#34d399; font-weight:600; margin-top:6px; display:none;"></div>
+                <div id="mic_msg" style="color:#94a3b8; font-size:0.85rem; margin-top:8px;">Dictate clearly into your microphone</div>
+                <div id="mic_result" style="color:#34d399; font-weight:600; margin-top:6px; font-size:0.9rem; display:none;"></div>
             </div>
             <script>
                 var rec;
@@ -258,7 +260,7 @@ if not is_admin_active:
                     rec = new SR();
                     rec.lang = '{active_speech_code}';
                     rec.start();
-                    document.getElementById('mic_btn').style.background = '#ef4444';
+                    document.getElementById('mic_btn').style.background = '#dc2626';
                     document.getElementById('mic_btn').style.color = '#ffffff';
                     document.getElementById('mic_btn').innerText = '⏹️ Listening... Speak Now!';
                     document.getElementById('mic_msg').innerText = 'Listening to your voice...';
@@ -279,8 +281,8 @@ if not is_admin_active:
                         }} catch(err) {{ console.log(err); }}
                     }};
                     rec.onend = function() {{
-                        document.getElementById('mic_btn').style.background = '#38bdf8';
-                        document.getElementById('mic_btn').style.color = '#0f172a';
+                        document.getElementById('mic_btn').style.background = '#0284c7';
+                        document.getElementById('mic_btn').style.color = '#ffffff';
                         document.getElementById('mic_btn').innerText = '🎙️ Tap to Speak';
                     }};
                 }}
@@ -289,19 +291,20 @@ if not is_admin_active:
             st.components.v1.html(speech_html, height=115)
 
             user_hazard_text = st.text_area(
-                "Or write what you saw here:",
-                value=quick_text,
-                height=100,
-                placeholder="Example: Ladder is shaky, worker has no helmet, oil leaking near wire..."
+                "Observation Narrative:",
+                key="worker_hazard_text_area",
+                height=110,
+                placeholder="Example: High pressure gas valve leaking near crude manifold without tag-out isolation..."
             )
+            st.markdown("</div>", unsafe_allow_html=True)
 
         with col_right:
             st.markdown("""
-            <div class="step-card">
-                <div class="step-badge">Step 2 of 3</div>
-                <h3 style="margin-top:0; font-size:1.3rem;">📍 Where did you see it?</h3>
-                <p style="color:#94a3b8; font-size:0.92rem;">Pick from the dropdowns below (automatically translated to your language).</p>
-            </div>
+            <div class="pro-card">
+                <div class="pro-card-header">
+                    <div class="pro-card-title">📍 Operational Context & Location</div>
+                    <span class="status-badge-blue">Section 2</span>
+                </div>
             """, unsafe_allow_html=True)
 
             # Localized dropdowns
@@ -309,19 +312,13 @@ if not is_admin_active:
             loc_acts = get_localized_activities(lang_code)
 
             chosen_site_disp = st.selectbox("📍 Plant / Rig Location:", loc_sites)
-            chosen_act_disp = st.selectbox("🔨 What activity was happening?", loc_acts)
+            chosen_act_disp = st.selectbox("🔨 Operational Activity:", loc_acts)
 
-            worker_name_input = st.text_input("👷 Your Name (Optional):", value="Field Worker")
+            worker_name_input = st.text_input("👷 Reporter Name / Badge Code (Optional):", value="Field Operator #402")
 
-            st.markdown("""
-            <div class="step-card" style="margin-top:16px;">
-                <div class="step-badge" style="background:rgba(16, 185, 129, 0.15); color:#34d399; border-color:rgba(16, 185, 129, 0.3);">Step 3 of 3</div>
-                <h3 style="margin-top:0; font-size:1.3rem;">🚀 Ready to Send</h3>
-                <p style="color:#94a3b8; font-size:0.92rem;">Press the big green button. Our safety team gets it right away!</p>
-            </div>
-            """, unsafe_allow_html=True)
-
-            send_report_btn = st.button("📤 Send Safety Report Now", type="primary", use_container_width=True)
+            st.markdown("<br>", unsafe_allow_html=True)
+            send_report_btn = st.button("📤 Submit Incident Report to HSE Command", type="primary", use_container_width=True)
+            st.markdown("</div>", unsafe_allow_html=True)
 
         if send_report_btn:
             if not user_hazard_text.strip():
@@ -359,44 +356,48 @@ if not is_admin_active:
                 is_danger = (res['sif_label'] == 'SIF-Potential')
 
                 if is_danger:
+                    lsr_display = ', '.join(matched_lsr) if matched_lsr else "General Operations"
                     st.markdown(f"""
                     <div class="danger-banner">
-                        <div style="font-size:2.8rem; margin-bottom:4px;">🚨</div>
-                        <h2 style="color:#ef4444; font-size:1.8rem; margin:0;">HIGH DANGER HAZARD DETECTED!</h2>
-                        <p style="color:#fecaca; font-size:1.1rem; max-width:650px; margin:8px auto;">
-                            <b>Please stay back and warn others!</b> Our safety team has been alerted immediately.
+                        <div style="font-size:2.4rem; margin-bottom:4px;">🚨</div>
+                        <h2 style="color:#f87171; font-size:1.6rem; font-weight:800; margin:0;">CRITICAL SIF PRECURSOR DETECTED</h2>
+                        <p style="color:#fecaca; font-size:1.02rem; max-width:650px; margin:8px auto;">
+                            High-consequence fatality hazard pattern identified. Emergency safety intervention protocol triggered.
                         </p>
-                        <div style="margin-top:12px;">
+                        <div style="margin-top:14px; display:flex; justify-content:center; gap:10px; flex-wrap:wrap;">
                             <span class="status-badge-red">Tracking ID: <b>{new_id}</b></span>
+                            <span class="status-badge-orange">Risk Score: <b>{res['risk_score']}/10</b></span>
+                            <span class="status-badge-blue">IOGP Rule: <b>{lsr_display}</b></span>
                         </div>
                     </div>
                     """, unsafe_allow_html=True)
                 else:
                     st.markdown(f"""
                     <div class="safe-banner">
-                        <div style="font-size:2.8rem; margin-bottom:4px;">✅</div>
-                        <h2 style="color:#10b981; font-size:1.8rem; margin:0;">THANK YOU! REPORT RECEIVED</h2>
-                        <p style="color:#a7f3d0; font-size:1.1rem; max-width:650px; margin:8px auto;">
-                            Danger level is low. Our team will review this during normal shift inspection.
+                        <div style="font-size:2.4rem; margin-bottom:4px;">✅</div>
+                        <h2 style="color:#34d399; font-size:1.6rem; font-weight:800; margin:0;">OBSERVATION LOGGED SUCCESSFULLY</h2>
+                        <p style="color:#a7f3d0; font-size:1.02rem; max-width:650px; margin:8px auto;">
+                            Low-risk operational observation recorded. Scheduled for standard shift walkthrough review.
                         </p>
-                        <div style="margin-top:12px;">
+                        <div style="margin-top:14px; display:flex; justify-content:center; gap:10px; flex-wrap:wrap;">
                             <span class="status-badge-green">Tracking ID: <b>{new_id}</b></span>
+                            <span class="status-badge-blue">Risk Score: <b>{res['risk_score']}/10</b></span>
                         </div>
                     </div>
                     """, unsafe_allow_html=True)
 
-                st.markdown("### 📦 Live Status of Your Report:")
+                st.markdown("### 📋 Live Incident Lifecycle Status:")
                 st.markdown(render_visual_tracker(cs.STATUS_UNCHECKED), unsafe_allow_html=True)
-                st.info(f"💡 **What our AI spotted:** {res['explanation']}")
+                st.info(f"💡 **AI NLP Attribution:** {res['explanation']}")
 
     # ==============================================================================
     # TAB: WORKER TRACKING (SIMPLE PACKAGE TRACKER STYLE)
     # ==============================================================================
     with tab_track:
         st.markdown("""
-        <div style="text-align:center; margin-bottom:20px;">
-            <h2 style="font-weight:800; font-size:1.8rem; margin-bottom:6px;">🔍 Track Any Complaint</h2>
-            <p style="color:#94a3b8; font-size:1.05rem;">See when an officer is visiting and when it gets fixed!</p>
+        <div style="margin-bottom:20px;">
+            <h2 style="font-weight:800; font-size:1.6rem; color:#f8fafc; margin-bottom:4px;">🔍 Incident Lifecycle Audit & Tracking</h2>
+            <p style="color:#94a3b8; font-size:0.95rem;">Track real-time inspection status, assigned HSE inspectors, and corrective action verification across all OIL facilities.</p>
         </div>
         """, unsafe_allow_html=True)
 
@@ -446,10 +447,13 @@ if not is_admin_active:
         l_col1, _ = st.columns([1.5, 1])
         with l_col1:
             st.markdown("""
-            <div class="step-card">
-                <h4 style="margin-top:0; color:#38bdf8;">Authorized Safety Leads Only</h4>
-                <p style="color:#94a3b8; font-size:0.92rem;">
-                    Sign in to change report statuses, assign officers to visit rigs, and mark hazards as solved.
+            <div class="pro-card">
+                <div class="pro-card-header">
+                    <div class="pro-card-title">🔐 HSE Lead & Officer Authentication</div>
+                    <span class="status-badge-blue">Authorized Access</span>
+                </div>
+                <p style="color:#94a3b8; font-size:0.92rem; margin:0;">
+                    Sign in to dispatch inspection teams, verify barrier controls, update incident lifecycles, and access regulatory audit logs.
                 </p>
             </div>
             """, unsafe_allow_html=True)
@@ -476,23 +480,23 @@ else:
     k1, k2, k3 = st.columns(3)
     with k1:
         st.markdown(f"""
-        <div class="stat-box" style="border-color:#ef4444;">
-            <div class="stat-number" style="color:#ef4444;">{metrics['unchecked']}</div>
-            <div class="stat-label">🔴 Need to Check (New)</div>
+        <div class="stat-box stat-box-red">
+            <div class="stat-number" style="color:#f87171;">{metrics['unchecked']}</div>
+            <div class="stat-label">🔴 Pending Review</div>
         </div>
         """, unsafe_allow_html=True)
     with k2:
         st.markdown(f"""
-        <div class="stat-box" style="border-color:#f59e0b;">
-            <div class="stat-number" style="color:#f59e0b;">{metrics['gonna_visit']}</div>
-            <div class="stat-label">🟠 Visiting Site Today</div>
+        <div class="stat-box stat-box-orange">
+            <div class="stat-number" style="color:#fbbf24;">{metrics['gonna_visit']}</div>
+            <div class="stat-label">🟠 Inspections Dispatched</div>
         </div>
         """, unsafe_allow_html=True)
     with k3:
         st.markdown(f"""
-        <div class="stat-box" style="border-color:#10b981;">
-            <div class="stat-number" style="color:#10b981;">{metrics['solved']}</div>
-            <div class="stat-label">🟢 Fixed & Solved</div>
+        <div class="stat-box stat-box-green">
+            <div class="stat-number" style="color:#34d399;">{metrics['solved']}</div>
+            <div class="stat-label">🟢 Mitigated & Closed</div>
         </div>
         """, unsafe_allow_html=True)
 
@@ -501,7 +505,8 @@ else:
     admin_tabs = st.tabs([
         "🚨 Safety Complaints Queue",
         "📊 Quick Risk Overview",
-        "📱 Report on Behalf of Worker"
+        "📱 Report on Behalf of Worker",
+        "📥 Official HSE Compliance Export"
     ])
 
     # TAB 1: COMPLAINTS ACTION QUEUE
@@ -551,6 +556,13 @@ else:
                 card_c1, card_c2 = st.columns([1.4, 1.6])
 
                 with card_c1:
+                    if c_score >= 8.0:
+                        st.markdown(f"""
+                        <div style="background:rgba(239, 68, 68, 0.15); border:1px solid #ef4444; border-radius:10px; padding:10px 14px; margin-bottom:12px; font-size:0.88rem; color:#fca5a5;">
+                            🚨 <b>CRITICAL SIF PRECURSOR DISPATCH ALERT:</b><br>
+                            Auto-alerted On-Duty HSE Supervisor at <b>{c_site}</b> via UHF Emergency Channel 1 & SMS.
+                        </div>
+                        """, unsafe_allow_html=True)
                     st.markdown(f"**Reported Hazard:**\n> {c_text}")
                     st.write(f"📍 **Location:** `{c_site}`")
                     st.write(f"🔨 **Activity:** `{c_act}`")
@@ -639,3 +651,67 @@ else:
                 )
                 st.success(f"Report {nid} created!")
                 st.rerun()
+
+    # TAB 4: OFFICIAL HSE COMPLIANCE EXPORT (OISD / DGMS AUDIT)
+    with admin_tabs[3]:
+        st.markdown("### 📥 Official HSE Compliance & Shift Handover Export")
+        st.caption("Generate standardized audit reports compliant with OISD (Oil Industry Safety Directorate) and DGMS guidelines.")
+
+        df_all = pd.DataFrame(all_complaints)
+        if not df_all.empty:
+            e_col1, e_col2, e_col3 = st.columns(3)
+            with e_col1:
+                st.metric("Total Incident Records", len(df_all))
+            with e_col2:
+                sif_total = len(df_all[df_all['sif_label'] == 'SIF-Potential']) if 'sif_label' in df_all.columns else 0
+                st.metric("High SIF Precursors", sif_total)
+            with e_col3:
+                resolved_cnt = len(df_all[df_all['status'] == cs.STATUS_SOLVED]) if 'status' in df_all.columns else 0
+                st.metric("Mitigated & Closed", resolved_cnt)
+
+            st.markdown("---")
+            st.markdown("#### 📄 Filter & Download Regulatory Dataset")
+            export_filter = st.selectbox(
+                "Filter records by Action Status:",
+                ["All Records", cs.STATUS_UNCHECKED, cs.STATUS_GONNA_BE_VISITED, cs.STATUS_SOLVED],
+                key="exp_status_flt"
+            )
+
+            df_export = df_all.copy()
+            if export_filter != "All Records":
+                df_export = df_export[df_export['status'] == export_filter]
+
+            col_order = [
+                'complaint_id', 'timestamp', 'site', 'activity', 'category',
+                'sif_label', 'risk_score', 'lsr_tags', 'status',
+                'assigned_inspector', 'admin_notes', 'original_text'
+            ]
+            valid_cols = [c for c in col_order if c in df_export.columns]
+            export_clean = df_export[valid_cols].rename(columns={
+                'complaint_id': 'Report_Tracking_ID',
+                'timestamp': 'Date_Time_Logged',
+                'site': 'Facility_Location',
+                'activity': 'Operational_Activity',
+                'category': 'Hazard_Classification',
+                'sif_label': 'SIF_Potential',
+                'risk_score': 'Risk_Score_1_to_10',
+                'lsr_tags': 'IOGP_Life_Saving_Rules_Violated',
+                'status': 'Current_Action_Status',
+                'assigned_inspector': 'Assigned_Safety_Officer',
+                'admin_notes': 'Corrective_Action_Notes',
+                'original_text': 'Incident_Narrative'
+            })
+
+            st.dataframe(export_clean, use_container_width=True, hide_index=True)
+
+            csv_data = export_clean.to_csv(index=False).encode('utf-8')
+            st.download_button(
+                label="📥 Download Scored HSE Incident Log (CSV / Excel Compatible)",
+                data=csv_data,
+                file_name=f"OIL_HSE_Audit_Log_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+                mime="text/csv",
+                type="primary",
+                use_container_width=True
+            )
+        else:
+            st.info("No complaint records currently available to export.")
